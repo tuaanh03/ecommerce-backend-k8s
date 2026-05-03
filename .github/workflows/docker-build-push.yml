@@ -32,3 +32,33 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:${{ env.TAG_NAME }}
             ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:latest
+            
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+        with:
+          repository: tuaanh03/ecommerce-infrastructure
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+          path: ecommerce-infrastructure
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update backend image in manifest
+        run: |
+          cd ecommerce-infrastructure
+
+          yq -i '
+            select(.kind == "Deployment" and .metadata.name == "ecommerce-backend-deployment")
+            .spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:${{ env.TAG_NAME }}"
+          ' app/ecommerce/stack.yaml
+
+      - name: Commit and push manifest
+        run: |
+          cd ecommerce-infrastructure
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add app/ecommerce/stack.yaml
+          git commit -m "Update backend image to ${{ env.TAG_NAME }}" || echo "No changes to commit"
+          git push
