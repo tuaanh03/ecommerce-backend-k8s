@@ -52,7 +52,7 @@ jobs:
           yq -i '
             select(.kind == "Deployment" and .metadata.name == "ecommerce-backend-deployment")
             .spec.template.spec.containers[0].image = "${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:${{ env.TAG_NAME }}"
-          ' app/ecommerce/stack.yaml
+          ' apps/ecommerce/stack.yaml
 
       - name: Commit and push manifest
         run: |
